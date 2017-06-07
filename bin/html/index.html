@@ -1,0 +1,82 @@
+{{ define "content" }}
+
+	<div id='map'></div>
+	<div class="form-group">
+		<label for="inputQuery">Food</label>
+		<input id="inputQuery" type="text" class="form-control" placeholder="Example: &quot;Starbucks&quot;, &quot;coffee&quot;, &quot;pizza&quot; etc.">
+	</div>
+	<div class="form-group">
+		<label for="inputLocation">Place</label>
+		<input id="inputLocation" type="text" class="form-control" placeholder="Example: &quot;Tokyo&quot;, &quot;Japan&quot;, &quot;Singapore&quot;, &quot;Jakarta&quot;, &quot;Raffles Place, Singapore&quot;">
+	</div>
+	<div class="form-group">
+		<button id="buttonSearch" type="button" class="btn btn-info">Search</button>
+	</div>
+	<hr></hr>
+	<div id="content">
+		<div id="map-container">
+	      		<div id="map"></div>
+	    </div>
+		<script type="text/javascript">
+			const lClientId = "NPhOO9hCkbTlIyK9fyuFsQ";
+			const lClientSecret = "6ZLX8vHJgLGXLgO2Usb2q8kFKw3147mlcthJeI8cPDpiBI0188bVWv5RaO8S48tf";
+
+	        L.mapbox.accessToken = 'pk.eyJ1IjoicGVya2FwcmFzYWQiLCJhIjoiaWJXR1pHUSJ9.HA2cs8BfkqPLWf72vaSiMw';
+		    var map = L.mapbox.map('map', 'mapbox.streets');
+	 
+			$("#buttonSearch").click(function()
+			{
+				$("#divSearchResults").css("visibility", "hidden");
+				$.ajax({
+					url: "http://localhost:8000/SearchBusiness",
+					type: "POST",
+					contentType: 'application/json; charset=utf-8',
+					data: JSON.stringify({ term: $("#inputQuery").val(), location: $("#inputLocation").val() }),
+					success: function(pData) {
+						$("#divSearchResults").css("visibility", "visible");
+						$('#data-table').bootstrapTable("destroy");
+						$('#data-table').bootstrapTable({data: pData.businesses});
+						map.setView([pData.businesses[0].coordinates.latitude, pData.businesses[0].coordinates.longitude], 12);
+						for(var i=0; i < pData.businesses.length; i++){
+							L.marker(new L.LatLng(pData.businesses[i].coordinates.latitude, pData.businesses[i].coordinates.longitude),{
+								icon: L.mapbox.marker.icon({
+									'marker-color': '#3ca0d3',
+								    'marker-size': 'large',
+								    'marker-symbol': 'star'
+								}),
+								draggable: false
+
+							}).bindPopup('<h2>' + pData.businesses[i].name + '</h2><h4>Rating : '+ pData.businesses[i].rating + ' * </h4>').
+							addTo(map);
+
+						}
+					},
+				});
+			});
+
+			function imageFormatter(value, row) {
+				return '<img src="'+value+'" width="200" height="150" />';
+			}
+			function locationFormatter(value, row) {
+				return '<p>' + value.address1 + '</p><p>' + value.address2 + '</p><p>' + value.address3 + '</p><p>' + value.zip_code + '</p>';
+			}
+		</script>
+		<div id="divSearchResults" class="form-group" style="visibility:hidden">
+			<div class="panel panel-default">
+				<div class="panel-heading">Search Results</div>
+				<div class="panel-body">
+					<table id="data-table" class="table table-bordered table-striped" data-pagination="true" data-search="true" data-page-size="5">
+						<thead>
+							<tr>
+								<th data-field="rating" data-sortable="true">Rating</th>
+								<th data-field="name" data-sortable="true">Name</th>
+								<th data-field="image_url" data-formatter="imageFormatter">Image</th>
+								<th data-field="location" data-formatter="locationFormatter">Address</th>
+							</tr>
+						</thead>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+{{ end }}
